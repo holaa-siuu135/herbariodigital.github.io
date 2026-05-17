@@ -6,10 +6,10 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') exit(0);
 
-$host = 'sql200.infinityfree.com';
-$user = 'if0_41941081';
-$password = 'hSy9dzBIvnh';
-$database = 'if0_41941081_herbario_db';
+$host = 'localhost';
+$user = '';
+$password = 'root';
+$database = 'herbario_db';
 
 $conn = new mysqli($host, $user, $password, $database);
 if ($conn->connect_error) {
