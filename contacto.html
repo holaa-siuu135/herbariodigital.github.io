@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacto | Herbario Digital</title>
+    <link rel="stylesheet" href="styles_1.css">
+</head>
+<body>
+
+<video autoplay muted loop playsinline class="video-background">
+    <source src="fondo_bosque.mp4" type="video/mp4">
+</video>
+
+<div id="preloader">
+    <div class="leaf-container" id="leafContainer"></div>
+    <div class="preloader-text">Cargando herbario...</div>
+</div>
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="header-content">
+            <div class="logo-area">
+                <div class="logo-icon">🌿</div>
+                <div class="logo-text">
+                    <h1>Herbario Digital</h1>
+                    <p>Contacto</p>
+                </div>
+            </div>
+            <nav class="nav-tabs">
+                <a href="index.html" class="nav-tab">Inicio</a>
+                <a href="catalogo.html" class="nav-tab">Catálogo</a>
+                <a href="admin.html" class="nav-tab">Administrar</a>
+                <a href="contacto.html" class="nav-tab active">Contacto</a>
+            </nav>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="form-container">
+            <div class="form-header">
+                <h2>📧 Formulario de Contacto</h2>
+                <p>Envíanos tu mensaje, consulta o sugerencia</p>
+            </div>
+            <div class="form-body">
+                <form id="contactoForm">
+                    <div class="form-group"><label>Nombre completo *</label><input type="text" id="nombre" required></div>
+                    <div class="form-group"><label>Correo electrónico *</label><input type="email" id="email" required></div>
+                    <div class="form-group"><label>Mensaje *</label><textarea id="mensaje" rows="5" required></textarea></div>
+                    <button type="submit" class="btn btn-primary">Enviar Mensaje</button>
+                </form>
+                <div id="respuestaContacto"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>🌿 Herbario Digital · Aldo Saldaña & Marco Sánchez · © 2025</p>
+        </div>
+    </footer>
+</div>
+
+<script>
+    window.addEventListener('load', function() {
+        const container = document.getElementById('leafContainer');
+        const leafEmojis = ['🍃', '🍂', '🌿', '🍁', '🌾'];
+        for (let i = 0; i < 60; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+            leaf.innerHTML = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDuration = 3 + Math.random() * 3 + 's';
+            leaf.style.animationDelay = Math.random() * 2 + 's';
+            leaf.style.fontSize = 18 + Math.random() * 24 + 'px';
+            leaf.style.opacity = 0.5 + Math.random() * 0.5;
+            container.appendChild(leaf);
+        }
+        setTimeout(() => {
+            const preloader = document.getElementById('preloader');
+            preloader.style.opacity = '0';
+            setTimeout(() => { preloader.style.display = 'none'; }, 600);
+        }, 2500);
+    });
+
+    document.getElementById('contactoForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const fd = new FormData();
+        fd.append('nombre', document.getElementById('nombre').value);
+        fd.append('email', document.getElementById('email').value);
+        fd.append('mensaje', document.getElementById('mensaje').value);
+        try {
+            const res = await fetch('contacto_procesar.php', { method: 'POST', body: fd });
+            const data = await res.json();
+            const div = document.getElementById('respuestaContacto');
+            if (data.success) {
+                div.innerHTML = '<div class="alert alert-success">✅ ' + data.message + '</div>';
+                document.getElementById('contactoForm').reset();
+            } else {
+                div.innerHTML = '<div class="alert" style="background:#fee2e2; border-left-color:#e74c3c;">❌ Error: ' + data.error + '</div>';
+            }
+            setTimeout(() => div.innerHTML = '', 4000);
+        } catch (err) {
+            alert('Error de conexión: ' + err.message);
+        }
+    };
+</script>
+</body>
+</html>

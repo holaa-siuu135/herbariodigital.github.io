@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herbario Digital | Inicio</title>
+    <link rel="stylesheet" href="styles_1.css">
+</head>
+<body>
+
+<video autoplay muted loop playsinline class="video-background">
+    <source src="fondo_bosque.mp4" type="video/mp4">
+</video>
+
+<div id="preloader">
+    <div class="leaf-container" id="leafContainer"></div>
+    <div class="preloader-text">Cargando herbario...</div>
+</div>
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="header-content">
+            <div class="logo-area">
+                <div class="logo-icon">🌿</div>
+                <div class="logo-text">
+                    <h1>Herbario Digital</h1>
+                    <p>Plataforma Botánica Profesional</p>
+                </div>
+            </div>
+            <nav class="nav-tabs">
+                <a href="index.html" class="nav-tab active">Inicio</a>
+                <a href="catalogo.html" class="nav-tab">Catálogo</a>
+                <a href="admin.html" class="nav-tab">Administrar</a>
+                <a href="contacto.html" class="nav-tab">Contacto</a>
+            </nav>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <section class="hero-section">
+            <h1>Bienvenidos al Herbario Digital</h1>
+            <p>Explora nuestra colección de plantas medicinales y ornamentales. Un espacio dedicado a la preservación y difusión del conocimiento botánico.</p>
+            <a href="catalogo.html" class="btn btn-primary">Explorar Catálogo →</a>
+        </section>
+
+        <section class="info-section">
+            <div class="info-card"><div class="info-icon">🌱</div><h3>Misión</h3><p>Preservar y difundir el conocimiento de las plantas medicinales y ornamentales, promoviendo su uso responsable y la conservación de la biodiversidad.</p></div>
+            <div class="info-card"><div class="info-icon">📖</div><h3>Visión</h3><p>Ser la plataforma botánica de referencia en habla hispana, conectando a estudiantes, investigadores y entusiastas de la naturaleza.</p></div>
+            <div class="info-card"><div class="info-icon">🌎</div><h3>Más de 15 especies</h3><p>Catálogo en constante crecimiento. Cada ficha incluye nombre científico, familia, usos medicinales e imágenes de alta calidad.</p></div>
+        </section>
+
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon">🌿</div><div class="stat-info"><h3 id="totalPlantas">0</h3><p>Especies Registradas</p></div></div>
+            <div class="stat-card"><div class="stat-icon">🏥</div><div class="stat-info"><h3>15+</h3><p>Usos Medicinales</p></div></div>
+            <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-info"><h3>6</h3><p>Familias Botánicas</p></div></div>
+            <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-info"><h3>2</h3><p>Investigadores</p></div></div>
+        </div>
+
+        <div class="section-title">
+            <h2>Plantas Destacadas</h2>
+            <a href="catalogo.html" class="btn btn-outline btn-small">Ver todas →</a>
+        </div>
+        <div class="cards-grid" id="destacadasGrid">
+            <div class="plant-card skeleton" style="height: 380px;"></div>
+            <div class="plant-card skeleton" style="height: 380px;"></div>
+            <div class="plant-card skeleton" style="height: 380px;"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>🌿 Herbario Digital · Aldo Saldaña & Marco Sánchez · © 2025</p>
+            <p>Técnico en Programación · Proyecto de Titulación</p>
+        </div>
+    </footer>
+</div>
+
+<script>
+    // Generar hojas cayendo inmediatamente (sin esperar load)
+    (function() {
+        const container = document.getElementById('leafContainer');
+        if (!container) return;
+        const leafEmojis = ['🍃', '🍂', '🌿', '🍁', '🌾'];
+        for (let i = 0; i < 60; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+            leaf.innerHTML = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDuration = 3 + Math.random() * 3 + 's';
+            leaf.style.animationDelay = Math.random() * 2 + 's';
+            leaf.style.fontSize = 18 + Math.random() * 24 + 'px';
+            leaf.style.opacity = 0.5 + Math.random() * 0.5;
+            container.appendChild(leaf);
+        }
+    })();
+
+    // Ocultar preloader después de 2 segundos (forzado)
+    setTimeout(() => {
+        const preloader = document.getElementById('preloader');
+        if (preloader) {
+            preloader.style.opacity = '0';
+            setTimeout(() => { preloader.style.display = 'none'; }, 600);
+        }
+    }, 2000);
+
+    // Resto de funciones
+    async function cargarContador() {
+        try {
+            const res = await fetch('obtener_plantas.php');
+            const plantas = await res.json();
+            document.getElementById('totalPlantas').innerText = Array.isArray(plantas) ? plantas.length : 0;
+        } catch(e) { console.error(e); }
+    }
+
+    async function cargarDestacadas() {
+        try {
+            const res = await fetch('obtener_plantas.php');
+            const plantas = await res.json();
+            if (!Array.isArray(plantas) || plantas.length === 0) {
+                document.getElementById('destacadasGrid').innerHTML = '<p>No hay plantas registradas aún.</p>';
+                return;
+            }
+            const destacadas = plantas.slice(0,3);
+            const grid = document.getElementById('destacadasGrid');
+            grid.innerHTML = destacadas.map(p => `
+                <div class="plant-card">
+                    <div class="card-image">
+                        <img src="ver_imagen.php?id=${p.id}" onerror="this.src='https://via.placeholder.com/400x200?text=Sin+imagen'">
+                    </div>
+                    <div class="card-content">
+                        <h3>${escapeHtml(p.nombre_comun)}</h3>
+                        <span class="card-scientific"><em>${escapeHtml(p.nombre_cientifico)}</em></span>
+                        <p class="card-description">${escapeHtml((p.usos || '').substring(0,100))}${(p.usos || '').length > 100 ? '...' : ''}</p>
+                        <div class="card-footer">
+                            <span class="badge">${escapeHtml(p.familia || 'Angiosperma')}</span>
+                            <a href="planta.html?id=${p.id}" class="btn btn-outline btn-small">Ver detalles →</a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } catch(e) { console.error(e); }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    cargarContador();
+    cargarDestacadas();
+</script>
+</body>
+</html>

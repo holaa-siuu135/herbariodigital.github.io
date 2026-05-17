@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrar | Herbario Digital</title>
+    <link rel="stylesheet" href="styles_1.css">
+    <style>
+        table { width:100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align:left; border-bottom:1px solid #ddd; }
+        .btn-small { padding:4px 8px; font-size:12px; margin:2px; }
+        .form-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .form-group { flex: 1; }
+        @media (max-width: 768px) { .form-row { flex-direction: column; } }
+    </style>
+</head>
+<body>
+
+<video autoplay muted loop playsinline class="video-background">
+    <source src="fondo_bosque.mp4" type="video/mp4">
+</video>
+
+<div id="preloader">
+    <div class="leaf-container" id="leafContainer"></div>
+    <div class="preloader-text">Cargando herbario...</div>
+</div>
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="header-content">
+            <div class="logo-area">
+                <div class="logo-icon">🌿</div>
+                <div class="logo-text">
+                    <h1>Herbario Digital</h1>
+                    <p>Panel de Administración</p>
+                </div>
+            </div>
+            <nav class="nav-tabs">
+                <a href="index.html" class="nav-tab">Inicio</a>
+                <a href="catalogo.html" class="nav-tab">Catálogo</a>
+                <a href="admin.html" class="nav-tab active">Administrar</a>
+                <a href="contacto.html" class="nav-tab">Contacto</a>
+            </nav>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="form-container">
+            <div class="form-header">
+                <h2>📌 Registrar / Editar Especie</h2>
+                <p>Complete el formulario para agregar o modificar una planta</p>
+            </div>
+            <div class="form-body">
+                <form id="formPlanta" enctype="multipart/form-data">
+                    <input type="hidden" id="plantaId" value="">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre común *</label>
+                            <input type="text" id="nombre_comun" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre científico *</label>
+                            <input type="text" id="nombre_cientifico" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Familia</label>
+                        <input type="text" id="familia">
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción</label>
+                        <textarea id="descripcion" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Usos medicinales</label>
+                        <textarea id="usos" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Imagen (dejar vacío para mantener la actual)</label>
+                        <input type="file" id="imagen" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="btnSubmit">Registrar Planta</button>
+                    <button type="button" class="btn btn-outline" id="btnCancelar" style="display:none;">Cancelar</button>
+                </form>
+                <div id="mensajeAdmin"></div>
+            </div>
+        </div>
+
+        <div class="form-container" style="margin-top: 2rem;">
+            <div class="form-header">
+                <h2>📋 Plantas Registradas</h2>
+                <p>Gestiona las especies existentes</p>
+            </div>
+            <div class="form-body">
+                <div id="listaPlantas" style="overflow-x: auto;">
+                    <table style="width:100%; border-collapse: collapse;">
+                        <thead>
+                            <tr><th>ID</th><th>Nombre Común</th><th>Científico</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody id="tablaPlantas"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>🌿 Herbario Digital · Aldo Saldaña & Marco Sánchez · © 2025</p>
+        </div>
+    </footer>
+</div>
+
+<script>
+    // Hojas cayendo inmediatamente
+    (function() {
+        const container = document.getElementById('leafContainer');
+        if (!container) return;
+        const leafEmojis = ['🍃', '🍂', '🌿', '🍁', '🌾'];
+        for (let i = 0; i < 60; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+            leaf.innerHTML = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDuration = 3 + Math.random() * 3 + 's';
+            leaf.style.animationDelay = Math.random() * 2 + 's';
+            leaf.style.fontSize = 18 + Math.random() * 24 + 'px';
+            leaf.style.opacity = 0.5 + Math.random() * 0.5;
+            container.appendChild(leaf);
+        }
+    })();
+
+    // Ocultar preloader después de 2 segundos (forzado)
+    setTimeout(() => {
+        const preloader = document.getElementById('preloader');
+        if (preloader) {
+            preloader.style.opacity = '0';
+            setTimeout(() => { preloader.style.display = 'none'; }, 600);
+        }
+    }, 2000);
+
+    // Lógica del administrador (CRUD)
+    const form = document.getElementById('formPlanta');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const btnCancelar = document.getElementById('btnCancelar');
+
+    async function cargarListado() {
+        try {
+            const res = await fetch('obtener_plantas.php');
+            const plantas = await res.json();
+            const tbody = document.getElementById('tablaPlantas');
+            if (!Array.isArray(plantas) || plantas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4">No hay plantas registradas</td></tr>';
+                return;
+            }
+            tbody.innerHTML = plantas.map(p => `
+                <tr>
+                    <td>${p.id}</td>
+                    <td>${escapeHtml(p.nombre_comun)}</td>
+                    <td>${escapeHtml(p.nombre_cientifico)}</td>
+                    <td>
+                        <button class="btn btn-outline btn-small" onclick="editar(${p.id})">✏️ Editar</button>
+                        <button class="btn btn-outline btn-small" onclick="eliminar(${p.id})">🗑️ Eliminar</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch(e) { console.error(e); }
+    }
+
+    window.editar = async (id) => {
+        try {
+            const res = await fetch(`obtener_planta.php?id=${id}`);
+            const p = await res.json();
+            if (p.error) throw new Error(p.error);
+            document.getElementById('plantaId').value = p.id;
+            document.getElementById('nombre_comun').value = p.nombre_comun;
+            document.getElementById('nombre_cientifico').value = p.nombre_cientifico;
+            document.getElementById('familia').value = p.familia || '';
+            document.getElementById('descripcion').value = p.descripcion || '';
+            document.getElementById('usos').value = p.usos || '';
+            btnSubmit.innerText = 'Actualizar Planta';
+            btnCancelar.style.display = 'inline-block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch(e) { alert('Error al cargar datos: ' + e.message); }
+    };
+
+    window.eliminar = async (id) => {
+        if (!confirm('¿Eliminar esta planta permanentemente?')) return;
+        try {
+            const res = await fetch(`eliminar_planta.php?id=${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                alert('Planta eliminada');
+                cargarListado();
+                if (document.getElementById('plantaId').value == id) {
+                    document.getElementById('btnCancelar').click();
+                }
+            } else { alert('Error: ' + data.error); }
+        } catch(e) { alert('Error de conexión: ' + e.message); }
+    };
+
+    btnCancelar.onclick = () => {
+        form.reset();
+        document.getElementById('plantaId').value = '';
+        btnSubmit.innerText = 'Registrar Planta';
+        btnCancelar.style.display = 'none';
+        document.getElementById('mensajeAdmin').innerHTML = '';
+    };
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('plantaId').value;
+        const fd = new FormData();
+        fd.append('nombre_comun', document.getElementById('nombre_comun').value);
+        fd.append('nombre_cientifico', document.getElementById('nombre_cientifico').value);
+        fd.append('familia', document.getElementById('familia').value);
+        fd.append('descripcion', document.getElementById('descripcion').value);
+        fd.append('usos', document.getElementById('usos').value);
+        const imagenFile = document.getElementById('imagen').files[0];
+        if (imagenFile) fd.append('imagen', imagenFile);
+        let url = 'guardar_planta.php';
+        if (id) { fd.append('id', id); url = 'editar_planta.php'; }
+        try {
+            const res = await fetch(url, { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.success) {
+                const mensajeDiv = document.getElementById('mensajeAdmin');
+                mensajeDiv.innerHTML = `<div class="alert alert-success">✅ ${id ? 'Actualizada' : 'Registrada'} correctamente.</div>`;
+                form.reset();
+                document.getElementById('plantaId').value = '';
+                btnSubmit.innerText = 'Registrar Planta';
+                btnCancelar.style.display = 'none';
+                cargarListado();
+                setTimeout(() => mensajeDiv.innerHTML = '', 3000);
+            } else { alert('Error: ' + data.error); }
+        } catch (err) { alert('Error de conexión: ' + err.message); }
+    };
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    cargarListado();
+</script>
+</body>
+</html>

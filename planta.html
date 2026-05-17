@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha Técnica | Herbario Digital</title>
+    <link rel="stylesheet" href="styles_1.css">
+</head>
+<body>
+
+<video autoplay muted loop playsinline class="video-background">
+    <source src="fondo_bosque.mp4" type="video/mp4">
+</video>
+
+<div id="preloader">
+    <div class="leaf-container" id="leafContainer"></div>
+    <div class="preloader-text">Cargando herbario...</div>
+</div>
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="header-content">
+            <div class="logo-area">
+                <div class="logo-icon">🌿</div>
+                <div class="logo-text">
+                    <h1>Herbario Digital</h1>
+                    <p>Ficha Técnica</p>
+                </div>
+            </div>
+            <nav class="nav-tabs">
+                <a href="index.html" class="nav-tab">Inicio</a>
+                <a href="catalogo.html" class="nav-tab">Catálogo</a>
+                <a href="admin.html" class="nav-tab">Administrar</a>
+                <a href="contacto.html" class="nav-tab">Contacto</a>
+            </nav>
+        </div>
+    </div>
+
+    <main class="main-content" id="ficha-container">
+        <div style="text-align: center; padding: 3rem;">
+            <div class="spinner"></div>
+            <p>Cargando información...</p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>🌿 Herbario Digital · Aldo Saldaña & Marco Sánchez · © 2025</p>
+        </div>
+    </footer>
+</div>
+
+<script>
+    // Generar hojas cayendo inmediatamente
+    (function() {
+        const container = document.getElementById('leafContainer');
+        if (!container) return;
+        const leafEmojis = ['🍃', '🍂', '🌿', '🍁', '🌾'];
+        for (let i = 0; i < 60; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+            leaf.innerHTML = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDuration = 3 + Math.random() * 3 + 's';
+            leaf.style.animationDelay = Math.random() * 2 + 's';
+            leaf.style.fontSize = 18 + Math.random() * 24 + 'px';
+            leaf.style.opacity = 0.5 + Math.random() * 0.5;
+            container.appendChild(leaf);
+        }
+    })();
+
+    // Ocultar preloader después de 2 segundos
+    setTimeout(() => {
+        const preloader = document.getElementById('preloader');
+        if (preloader) {
+            preloader.style.opacity = '0';
+            setTimeout(() => { preloader.style.display = 'none'; }, 600);
+        }
+    }, 2000);
+
+    // Función para cargar la ficha
+    async function cargarFicha() {
+        const id = new URLSearchParams(window.location.search).get('id');
+        if (!id) {
+            document.getElementById('ficha-container').innerHTML = `<div class="form-container" style="padding:2rem; text-align:center"><h2>ID no especificado</h2><a href="catalogo.html" class="btn btn-primary">Volver</a></div>`;
+            return;
+        }
+        try {
+            const res = await fetch(`obtener_planta.php?id=${id}`);
+            const p = await res.json();
+            if (p.error) throw new Error(p.error);
+            document.getElementById('ficha-container').innerHTML = `
+                <div class="detail-card">
+                    <div class="detail-header">
+                        <h1>${escapeHtml(p.nombre_comun)}</h1>
+                        <p class="scientific"><em>${escapeHtml(p.nombre_cientifico)}</em></p>
+                    </div>
+                    <div class="detail-body">
+                        <img src="ver_imagen.php?id=${p.id}" class="detail-image" onerror="this.src='https://via.placeholder.com/800x400?text=Sin+imagen'">
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-outline btn-small" onclick="descargarFicha(${p.id})">📄 Descargar ficha (TXT)</button>
+                            <button class="btn btn-outline btn-small" onclick="descargarImagen(${p.id})">🖼️ Descargar imagen</button>
+                            <button class="btn btn-outline btn-small" onclick="compartir(${p.id})">🔗 Compartir</button>
+                        </div>
+                        <div class="detail-grid">
+                            <div class="info-box"><h3>🌱 Familia</h3><p>${escapeHtml(p.familia || 'No especificada')}</p></div>
+                            <div class="info-box"><h3>📖 Descripción</h3><p>${escapeHtml(p.descripcion || 'Sin descripción')}</p></div>
+                            <div class="info-box"><h3>💚 Usos medicinales</h3><p>${escapeHtml(p.usos || 'Sin información')}</p></div>
+                            <div class="info-box"><h3>📅 Registro</h3><p>${new Date(p.created_at).toLocaleDateString()}</p></div>
+                        </div>
+                        <div style="text-align: center; margin-top: 2rem;"><a href="catalogo.html" class="btn btn-outline">← Volver al Catálogo</a></div>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            document.getElementById('ficha-container').innerHTML = `<div class="form-container" style="padding:2rem; text-align:center"><h2>Error</h2><p>${error.message}</p><a href="catalogo.html" class="btn btn-primary">Volver</a></div>`;
+        }
+    }
+
+    // Descargar ficha en TXT
+    window.descargarFicha = async (id) => {
+        try {
+            const res = await fetch(`obtener_planta.php?id=${id}`);
+            const p = await res.json();
+            const contenido = `Nombre Común: ${p.nombre_comun}
+Nombre Científico: ${p.nombre_cientifico}
+Familia: ${p.familia || 'N/A'}
+Descripción: ${p.descripcion || 'N/A'}
+Usos: ${p.usos || 'N/A'}
+Fecha de registro: ${new Date(p.created_at).toLocaleDateString()}
+--- Herbario Digital ---`;
+            const blob = new Blob([contenido], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${p.nombre_comun.replace(/[^a-z0-9]/gi, '_')}_ficha.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } catch(e) { alert('Error al descargar ficha: ' + e.message); }
+    };
+
+    // Descargar la imagen directamente desde el BLOB
+    window.descargarImagen = async (id) => {
+        try {
+            const res = await fetch(`ver_imagen.php?id=${id}`);
+            if (!res.ok) throw new Error('No se pudo obtener la imagen');
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            let ext = 'jpg';
+            if (blob.type === 'image/png') ext = 'png';
+            else if (blob.type === 'image/gif') ext = 'gif';
+            a.download = `planta_${id}.${ext}`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch(e) { alert('Error al descargar imagen: ' + e.message); }
+    };
+
+    // Compartir enlace
+    window.compartir = (id) => {
+        const url = `${window.location.origin}${window.location.pathname}?id=${id}`;
+        if (navigator.share) {
+            navigator.share({ title: 'Herbario Digital', text: 'Mira esta planta medicinal', url });
+        } else {
+            navigator.clipboard.writeText(url);
+            alert('Enlace copiado al portapapeles');
+        }
+    };
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    cargarFicha();
+</script>
+</body>
+</html>

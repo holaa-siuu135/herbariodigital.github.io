@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo | Herbario Digital</title>
+    <link rel="stylesheet" href="styles_1.css">
+</head>
+<body>
+
+<video autoplay muted loop playsinline class="video-background">
+    <source src="fondo_bosque.mp4" type="video/mp4">
+</video>
+
+<div id="preloader">
+    <div class="leaf-container" id="leafContainer"></div>
+    <div class="preloader-text">Cargando herbario...</div>
+</div>
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="header-content">
+            <div class="logo-area">
+                <div class="logo-icon">🌿</div>
+                <div class="logo-text">
+                    <h1>Herbario Digital</h1>
+                    <p>Catálogo</p>
+                </div>
+            </div>
+            <nav class="nav-tabs">
+                <a href="index.html" class="nav-tab">Inicio</a>
+                <a href="catalogo.html" class="nav-tab active">Catálogo</a>
+                <a href="admin.html" class="nav-tab">Administrar</a>
+                <a href="contacto.html" class="nav-tab">Contacto</a>
+            </nav>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="section-title">
+            <h2>Catálogo Completo</h2>
+            <div class="stats-badge">
+                <span class="badge" id="plantasCount">Cargando...</span>
+            </div>
+        </div>
+        <div class="cards-grid" id="catalogoGrid">
+            <div class="plant-card skeleton" style="height: 420px;"></div>
+            <div class="plant-card skeleton" style="height: 420px;"></div>
+            <div class="plant-card skeleton" style="height: 420px;"></div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>🌿 Herbario Digital · Aldo Saldaña & Marco Sánchez · © 2025</p>
+        </div>
+    </footer>
+</div>
+
+<script>
+    // Generar hojas cayendo inmediatamente (sin esperar load)
+    (function() {
+        const container = document.getElementById('leafContainer');
+        if (!container) return;
+        const leafEmojis = ['🍃', '🍂', '🌿', '🍁', '🌾'];
+        for (let i = 0; i < 60; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+            leaf.innerHTML = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDuration = 3 + Math.random() * 3 + 's';
+            leaf.style.animationDelay = Math.random() * 2 + 's';
+            leaf.style.fontSize = 18 + Math.random() * 24 + 'px';
+            leaf.style.opacity = 0.5 + Math.random() * 0.5;
+            container.appendChild(leaf);
+        }
+    })();
+
+    // Ocultar preloader después de 2 segundos (forzado)
+    setTimeout(() => {
+        const preloader = document.getElementById('preloader');
+        if (preloader) {
+            preloader.style.opacity = '0';
+            setTimeout(() => { preloader.style.display = 'none'; }, 600);
+        }
+    }, 2000);
+
+    // Cargar catálogo desde la base de datos
+    async function cargarCatalogo() {
+        const grid = document.getElementById('catalogoGrid');
+        const countSpan = document.getElementById('plantasCount');
+        try {
+            const res = await fetch('obtener_plantas.php');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const plantas = await res.json();
+            if (!Array.isArray(plantas)) throw new Error('Respuesta inválida');
+            if (plantas.length === 0) {
+                countSpan.textContent = '0 especies';
+                grid.innerHTML = '<div class="form-container" style="padding:2rem; text-align:center"><p>No hay plantas registradas. <a href="admin.html">Agrega una ahora</a></p></div>';
+                return;
+            }
+            countSpan.textContent = `${plantas.length} especies`;
+            grid.innerHTML = plantas.map(p => `
+                <div class="plant-card">
+                    <div class="card-image">
+                        <img src="ver_imagen.php?id=${p.id}" onerror="this.src='https://via.placeholder.com/400x200?text=Sin+imagen'">
+                    </div>
+                    <div class="card-content">
+                        <h3>${escapeHtml(p.nombre_comun)}</h3>
+                        <span class="card-scientific"><em>${escapeHtml(p.nombre_cientifico)}</em></span>
+                        <p class="card-description">${escapeHtml((p.usos || '').substring(0,100))}${(p.usos || '').length > 100 ? '...' : ''}</p>
+                        <div class="card-footer">
+                            <span class="badge">${escapeHtml(p.familia || 'Angiosperma')}</span>
+                            <a href="planta.html?id=${p.id}" class="btn btn-outline btn-small">Ver detalles →</a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } catch (err) {
+            countSpan.textContent = 'Error';
+            grid.innerHTML = `<div class="form-container" style="padding:2rem; text-align:center; color:red;"><p>Error al cargar catálogo: ${err.message}</p></div>`;
+            console.error(err);
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    cargarCatalogo();
+</script>
+</body>
+</html>
