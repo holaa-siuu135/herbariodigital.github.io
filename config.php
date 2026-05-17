@@ -7,8 +7,8 @@ header('Access-Control-Allow-Headers: Content-Type');
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') exit(0);
 
 $host = 'localhost';
-$user = '';
-$password = 'root';
+$user = 'root';
+$password = '';
 $database = 'herbario_db';
 
 $conn = new mysqli($host, $user, $password, $database);
